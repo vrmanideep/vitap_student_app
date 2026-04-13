@@ -213,6 +213,14 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
   }
 
   /// Navigate to a VTOP page using POST with CSRF token
+  /// Escape a string for safe inclusion in an HTML attribute.
+  String _htmlAttrEscape(String s) => s
+      .replaceAll('&', '&amp;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+
   Future<void> _navigateWithPost(String path,
       {Map<String, String>? additionalParams, bool verifyMenu = true}) async {
     if (_controller == null || _csrfToken == null) {
@@ -228,7 +236,8 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
     };
 
     final formFields = params.entries
-        .map((e) => '<input type="hidden" name="${e.key}" value="${e.value}">')
+        .map((e) =>
+            '<input type="hidden" name="${_htmlAttrEscape(e.key)}" value="${_htmlAttrEscape(e.value)}">')
         .join('');
 
     final jsCode = '''
