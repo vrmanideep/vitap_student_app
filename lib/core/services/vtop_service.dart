@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:vit_ap_student_app/core/models/credentials.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_client.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop_get_client.dart';
@@ -54,18 +53,8 @@ class VtopClientService {
         _currentPassword != password ||
         _isSessionNearExpiry();
 
-    debugPrint('getClient called: needsNewClient=$needsNewClient, '
-        'hasClient=${_client != null}, '
-        'isInitialized=$_isInitialized, '
-        'sameCredentials=${_currentUsername == username && _currentPassword == password}');
-
     if (needsNewClient) {
-      debugPrint(
-          'Creating a new Vtop client - Reason: ${_getClientCreationReason(username, password)}');
       await _initializeClient(username: username, password: password);
-    } else {
-      debugPrint(
-          'Using existing Vtop client (session age: ${_getSessionAge()})');
     }
 
     return _client!;
@@ -79,11 +68,6 @@ class VtopClientService {
     final isNearExpiry = sessionAge >= _sessionRefreshThreshold;
 
     // Debug logging to understand the issue
-    debugPrint(
-        'Session expiry check: age=${sessionAge.inMinutes}m ${sessionAge.inSeconds % 60}s, '
-        'threshold=${_sessionRefreshThreshold.inMinutes}m, '
-        'isNearExpiry=$isNearExpiry');
-
     return isNearExpiry;
   }
 
@@ -144,15 +128,12 @@ class VtopClientService {
       _currentPassword = password;
       _sessionCreatedAt = DateTime.now();
       _isInitialized = true;
-
-      debugPrint('VTOP client initialized successfully at $_sessionCreatedAt');
     } catch (e) {
       _isInitialized = false;
       _client = null;
       _currentUsername = null;
       _currentPassword = null;
       _sessionCreatedAt = null;
-      debugPrint('VTOP client initialization failed: $e');
       rethrow;
     }
   }
@@ -188,8 +169,6 @@ class VtopClientService {
         final client = await getClientFromCredentials(credentials);
         return await operation(client);
       } catch (e) {
-        debugPrint('VTOP operation failed (attempt $attempts/$maxRetries): $e');
-
         // If this was our last attempt, rethrow the error
         if (attempts >= maxRetries) {
           rethrow;
@@ -197,8 +176,6 @@ class VtopClientService {
 
         // Check if this is a session-related error that we can retry
         if (_isRetryableError(e)) {
-          debugPrint(
-              'Session-related error detected, forcing client reset and retry...');
           resetClient();
           // Brief delay before retry to avoid rapid successive requests
           await Future<void>.delayed(const Duration(milliseconds: 500));
@@ -226,7 +203,6 @@ class VtopClientService {
 
   /// Reset the client (for logout or credential changes)
   void resetClient() {
-    debugPrint('Resetting VTOP client (session age: ${_getSessionAge()})');
     _client = null;
     _isInitialized = false;
     _currentUsername = null;

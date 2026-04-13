@@ -78,8 +78,6 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       final cookieBytes = await fetchCookies(client: client);
       final cookieString = String.fromCharCodes(cookieBytes);
 
-      debugPrint('Cookie string received: $cookieString');
-
       if (cookieString.isEmpty) {
         setState(() {
           _isLoading = false;
@@ -91,9 +89,6 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       // Get CSRF token and username from Rust session
       _csrfToken = await fetchCsrfToken(client: client);
       _authorizedId = await fetchUsername(client: client);
-
-      debugPrint('CSRF Token: $_csrfToken');
-      debugPrint('Authorized ID: $_authorizedId');
 
       await _injectCookies(cookieString);
 
@@ -211,10 +206,9 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
       final token = result.toString().replaceAll('"', '');
       if (token.isNotEmpty) {
         _csrfToken = token;
-        debugPrint('Extracted CSRF token: $_csrfToken');
       }
     } catch (e) {
-      debugPrint('Failed to extract CSRF token: $e');
+      debugPrint('Failed to extract CSRF token');
     }
   }
 
@@ -222,7 +216,6 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
   Future<void> _navigateWithPost(String path,
       {Map<String, String>? additionalParams, bool verifyMenu = true}) async {
     if (_controller == null || _csrfToken == null) {
-      debugPrint('Cannot navigate: controller=$_controller, csrf=$_csrfToken');
       return;
     }
 
@@ -274,7 +267,6 @@ class _VtopWebViewPageState extends ConsumerState<VtopWebViewPage> {
           path: '/',
         ),
       );
-      debugPrint('Injected cookie: ${cookie.name}');
     }
   }
 
