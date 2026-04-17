@@ -4,6 +4,7 @@ mod api;
 use dotenv::dotenv;
 use std::env;
 use std::io::{self, Write};
+use crate::api::vtop::vtop_errors::VtopError;
 
 fn print_ascii_logo() {
     println!("\x1b[36m"); // Cyan color
@@ -86,11 +87,66 @@ async fn handle_login(client: &mut api::vtop::vtop_client::VtopClient) -> bool {
             print_success("VTOP login successful!");
             true
         }
+        Err(VtopError::LoginOtpRequired) => {
+            handle_login_otp(client).await
+        }
         Err(e) => {
             print_error(&format!("VTOP login failed: {:?}", e));
             false
         }
     }
+}
+
+async fn handle_login_otp(client: &mut api::vtop::vtop_client::VtopClient) -> bool {
+    print_separator();
+
+    let mut otp_attempts = 0;
+
+    while otp_attempts < 4 {
+        otp_attempts += 1;
+        let login_otp = get_user_input("Enter OTP sent to your email || NA to resend otp : ");
+        
+        if login_otp.trim().eq_ignore_ascii_case("NA") {
+            match api::vtop_get_client::handle_login_otp_resend(client).await {
+                Ok(_) => {
+                    print_success("OTP resent successfully! Please check your email.");
+                    otp_attempts = 0; // Reset attempts after resending
+                    continue;
+                }
+                Err(e) => {
+                    print_error(&format!("Failed to resend OTP: {:?}", e));
+                    return false;
+                }
+            }
+        } else {
+            match api::vtop_get_client::handle_login_otp(client,login_otp).await{
+                Ok(_) => {
+                    print_success("VTOP login successful!");
+                    return true;
+                }
+                Err(VtopError::LoginOtpIncorrect) => {
+                    print_error("Incorrect OTP. Please try again.");
+                    if otp_attempts == 4 {
+                        print_error("Maximum OTP attempts reached. Login failed.");
+                        return false;
+                    } else {
+                        print_info(&format!("Attempt {}/4", otp_attempts));
+                        continue;
+                    }
+                }
+                Err(VtopError::LoginOtpExpired) => {
+                    otp_attempts -= 1; // Don't count expired OTP as an attempt
+                    print_error("OTP has expired. Please request a new one.");
+                    continue;
+                }
+                Err(e) => {
+                    print_error(&format!("VTOP login failed: {:?}", e));
+                    return false;
+                }
+            }
+        }
+    }
+    false
 }
 
 async fn handle_student_profile(client: &mut api::vtop::vtop_client::VtopClient) {

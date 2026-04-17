@@ -552,3 +552,11 @@ pub async fn download_digital_assignment(
 ) -> Result<Vec<u8>, VtopError> {
     client.get_da_or_qp_pdf(download_url).await
 }
+
+pub async fn handle_login_otp(client: &mut VtopClient,otp_email: String) -> Result<(), VtopError> {
+    client.verify_login_otp(&otp_email).await
+}
+
+pub async fn handle_login_otp_resend(client: &mut VtopClient) -> Result<(), VtopError> {
+    client.resend_login_otp().await
+}
