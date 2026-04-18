@@ -158,7 +158,46 @@ impl VtopClient {
         ))
     }
 
-    /// response json : {"status":"INVALID","message":"Invalid OTP. Please try again."}
+    /// Verifies the OTP sent during login authentication.
+    ///
+    /// This method submits the OTP entered by the user to VTOP.
+    /// If the OTP is correct, the session is finalized and the user is
+    /// fully authenticated. On success, the method also loads the
+    /// authenticated dashboard page and extracts session details.
+    ///
+    /// # Sample Response (Success)
+    /// ```json
+    /// {
+    ///   "status": "SUCCESS",
+    ///   "redirectUrl": "/vtop/content"
+    /// }
+    /// ```
+    ///
+    /// # Sample Response (Failure)
+    /// ```json
+    /// {
+    ///   "status": "INVALID",
+    ///   "message": "Invalid OTP. Please try again."
+    /// }
+    /// ```
+    ///
+    /// # Sample Response (Failure)
+    /// ```json
+    /// {
+    ///   "status": "EXPIRED",
+    ///   "message": "OTP has expired. Please resend."
+    /// }
+    /// ```
+    ///
+    /// # Returns
+    /// Returns `Ok(())` if OTP verification succeeds and session is authenticated.
+    ///
+    /// # Errors
+    /// - `LoginOtpIncorrect` → OTP is wrong
+    /// - `LoginOtpExpired` → OTP expired
+    /// - `AuthenticationFailed` → server or parsing error
+    /// - `SessionExpired` → missing CSRF/session token
+
 
     pub async fn verify_login_otp(&mut self, otp: &str) -> VtopResult<()> {
 
@@ -195,6 +234,7 @@ impl VtopClient {
                 if redirect_url == "URL_NOT_FOUND" {
                     return Err(VtopError::AuthenticationFailed("Redirect URL not found in after OTP verification".to_string()));
                 }
+                // println!("Success response json: {:?}", response_json);
                 let content_url  = format!("{}{}", self.config.base_url, redirect_url);
                 let content_response = self
                             .client
@@ -224,11 +264,26 @@ impl VtopClient {
         }
     }
 
-    /// response json : {
-    /// "otpSentAt": "2026-04-17T23:18:03.719",
-    /// "message": "OTP sent successfully",
-    /// "status": "SUCCESS"
-    /// } 	
+    /// Requests a new OTP to be sent for login authentication.
+    ///
+    /// This method triggers the VTOP server to resend the OTP to the user.
+    /// It is used when the previous OTP expires or is not received.
+    ///
+    /// # Sample Response (Success)
+    /// ```json
+    /// {
+    ///   "otpSentAt": "2026-04-17T23:18:03.719",
+    ///   "message": "OTP sent successfully",
+    ///   "status": "SUCCESS"
+    /// }
+    /// ```
+    ///
+    /// # Returns
+    /// Returns `Ok(())` if OTP is successfully requested.
+    ///
+    /// # Errors
+    /// - `AuthenticationFailed` → OTP request failed or server error
+    /// - `SessionExpired` → missing CSRF/session token
 
     pub async fn resend_login_otp(&mut self) -> VtopResult<()> {
         let csrf = self
