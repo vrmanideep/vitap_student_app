@@ -73,6 +73,8 @@ class AuthRemoteRepository {
         client: client,
       );
       return Right((response.semesters));
+    } on VtopError_LoginOtpRequired {
+      return Left(LoginOtpRequiredFailure());
     } on SocketException {
       return Left(Failure('No internet connection'));
     } on VtopError catch (rustError) {
@@ -84,6 +86,32 @@ class AuthRemoteRepository {
     } catch (e) {
       debugPrint('Login failed: ${e.toString()}');
       return Left(Failure('An unexpected error occurred. Please try again.'));
+    }
+  }
+
+  Future<Either<Failure, void>> submitLoginOtp(String otpCode) async {
+    try {
+      await vtopService.submitLoginOtp(otpCode);
+      return const Right(null);
+    } on VtopError catch (rustError) {
+      final failureMessage = await VtopException.getFailureMessage(rustError);
+      return Left(Failure(failureMessage));
+    } catch (e) {
+      debugPrint('OTP submit failed: ${e.toString()}');
+      return Left(Failure('Failed to verify OTP. Please try again.'));
+    }
+  }
+
+  Future<Either<Failure, void>> resendLoginOtp() async {
+    try {
+      await vtopService.resendLoginOtp();
+      return const Right(null);
+    } on VtopError catch (rustError) {
+      final failureMessage = await VtopException.getFailureMessage(rustError);
+      return Left(Failure(failureMessage));
+    } catch (e) {
+      debugPrint('OTP resend failed: ${e.toString()}');
+      return Left(Failure('Failed to resend OTP. Please try again.'));
     }
   }
 }

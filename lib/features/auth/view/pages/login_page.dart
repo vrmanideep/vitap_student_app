@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:vit_ap_student_app/core/common/widget/auth_field.dart';
 import 'package:vit_ap_student_app/core/common/widget/loader.dart';
+import 'package:vit_ap_student_app/core/error/failure.dart';
 import 'package:vit_ap_student_app/core/network/connection_checker.dart';
 import 'package:vit_ap_student_app/core/services/analytics_service.dart';
 import 'package:vit_ap_student_app/core/utils/launch_web.dart';
 import 'package:vit_ap_student_app/core/utils/show_snackbar.dart';
 import 'package:vit_ap_student_app/core/utils/theme_switch_button.dart';
 import 'package:vit_ap_student_app/features/auth/view/pages/semester_selection_page.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/auth/viewmodel/semester_viewmodel.dart';
 import 'package:wiredash/wiredash.dart';
 
@@ -110,10 +112,22 @@ class LoginPageState extends ConsumerState<LoginPage> {
           );
         },
         error: (error, st) {
-          AnalyticsService.logEvent('semester_fetch_failed', {
-            'error_message': error.toString(),
-          });
-          showSnackBar(context, error.toString(), SnackBarType.error);
+          if (error is LoginOtpRequiredFailure) {
+            AnalyticsService.logEvent('login_otp_required', {
+              'username': usernameController.text.toUpperCase(),
+            });
+            showLoginOtpBottomSheet(
+              context: context,
+              registrationNumber:
+                  usernameController.text.trim().toUpperCase(),
+              password: passwordController.text.trim(),
+            );
+          } else {
+            AnalyticsService.logEvent('semester_fetch_failed', {
+              'error_message': error.toString(),
+            });
+            showSnackBar(context, error.toString(), SnackBarType.error);
+          }
         },
         loading: () {},
       );

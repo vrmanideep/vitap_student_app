@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:vit_ap_student_app/core/models/credentials.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_client.dart';
+import 'package:vit_ap_student_app/src/rust/api/vtop/vtop_errors.dart';
 import 'package:vit_ap_student_app/src/rust/api/vtop_get_client.dart';
 
 /// Singleton service for managing VTOP client instances
@@ -19,6 +20,7 @@ class VtopClientService {
   static VtopClientService? _instance;
   VtopClient? _client;
   bool _isInitialized = false;
+  bool _otpPending = false;
   String? _currentUsername;
   String? _currentPasswordDigest;
   DateTime? _sessionCreatedAt;
@@ -54,6 +56,11 @@ class VtopClientService {
     // 2. Not initialized
     // 3. Different credentials
     // 4. Session approaching expiry (proactive refresh)
+    // If OTP is pending, return the existing client so OTP can be submitted
+    if (_otpPending && _client != null) {
+      return _client!;
+    }
+
     final bool needsNewClient = _client == null ||
         !_isInitialized ||
         _currentUsername != username ||
@@ -136,6 +143,12 @@ class VtopClientService {
       _currentPasswordDigest = _digestOf(password);
       _sessionCreatedAt = DateTime.now();
       _isInitialized = true;
+    } on VtopError_LoginOtpRequired {
+      // Keep the client alive — OTP must be submitted on the same session
+      _currentUsername = username;
+      _currentPasswordDigest = _digestOf(password);
+      _otpPending = true;
+      rethrow;
     } catch (e) {
       _isInitialized = false;
       _client = null;
@@ -197,8 +210,37 @@ class VtopClientService {
     throw Exception('Max retries exceeded');
   }
 
+  /// Submit login OTP on the pending client session
+  Future<void> submitLoginOtp(String otpCode) async {
+    if (!_otpPending || _client == null) {
+      throw StateError('No OTP-pending session');
+    }
+    await handleLoginOtp(client: _client!, otpCode: otpCode);
+    _otpPending = false;
+    _isInitialized = true;
+    _sessionCreatedAt = DateTime.now();
+  }
+
+  /// Resend login OTP on the pending client session
+  Future<void> resendLoginOtp() async {
+    if (!_otpPending || _client == null) {
+      throw StateError('No OTP-pending session');
+    }
+    await handleLoginOtpResend(client: _client!);
+  }
+
+  /// Whether an OTP is pending on the current client session
+  bool get isOtpPending => _otpPending;
+
   /// Check if an error is retryable (session-related)
   bool _isRetryableError(dynamic error) {
+    // OTP errors are not retryable — they require user interaction
+    if (error is VtopError_LoginOtpRequired ||
+        error is VtopError_LoginOtpIncorrect ||
+        error is VtopError_LoginOtpExpired) {
+      return false;
+    }
+
     final errorString = error.toString().toLowerCase();
 
     // Check for session expiry indicators
@@ -213,6 +255,7 @@ class VtopClientService {
   void resetClient() {
     _client = null;
     _isInitialized = false;
+    _otpPending = false;
     _currentUsername = null;
     _currentPasswordDigest = null;
     _sessionCreatedAt = null;
