@@ -1,6 +1,5 @@
 import 'package:fpdart/fpdart.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:vit_ap_student_app/core/error/failure.dart';
 import 'package:vit_ap_student_app/core/network/connection_checker.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_local_repository.dart';
 import 'package:vit_ap_student_app/features/auth/repository/auth_remote_repository.dart';
@@ -122,12 +121,7 @@ class SemesterViewModel extends _$SemesterViewModel {
 
     switch (remoteRes) {
       case Left(value: final l):
-        if (l is LoginOtpRequiredFailure) {
-          // Pass the failure object itself so the UI can pattern-match on it
-          state = AsyncValue.error(l, StackTrace.current);
-        } else {
-          state = AsyncValue.error(l.message, StackTrace.current);
-        }
+        state = AsyncValue.error(l.message, StackTrace.current);
       case Right(value: final r):
         // Save to cache
         await _authLocalRepository.saveSemesters(r);

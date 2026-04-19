@@ -73,8 +73,6 @@ class AuthRemoteRepository {
         client: client,
       );
       return Right((response.semesters));
-    } on VtopError_LoginOtpRequired {
-      return Left(LoginOtpRequiredFailure());
     } on SocketException {
       return Left(Failure('No internet connection'));
     } on VtopError catch (rustError) {
