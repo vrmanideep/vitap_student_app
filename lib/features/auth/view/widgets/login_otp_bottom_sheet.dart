@@ -100,27 +100,21 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet> {
         },
         error: (error, _) {
           if (mounted) {
+            _pinController.clear();
             setState(() {
               _errorMessage = error.toString();
               _resendSuccess = false;
             });
-            _pinController.clear();
             _focusNode.requestFocus();
           }
         },
       );
     });
 
-    final defaultPinTheme = PinTheme(
-      width: 48,
-      height: 52,
-      textStyle: theme.textTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w600,
-      ),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: theme.colorScheme.outline),
-      ),
+    final defaultPinTheme = const PinTheme(
+      width: 60,
+      height: 64,
+      textStyle: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
     );
 
     return PopScope(
@@ -152,39 +146,6 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet> {
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
-            if (_errorMessage != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      size: 18,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onErrorContainer,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
             if (_resendSuccess) ...[
               Container(
                 width: double.infinity,
@@ -219,34 +180,68 @@ class _LoginOtpSheetState extends ConsumerState<_LoginOtpSheet> {
               const SizedBox(height: 12),
             ],
             Center(
-              child: Pinput(
-                controller: _pinController,
-                focusNode: _focusNode,
-                length: 6,
-                autofocus: true,
-                enabled: !isLoading,
-                defaultPinTheme: defaultPinTheme,
-                focusedPinTheme: defaultPinTheme.copyWith(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(
-                      color: theme.colorScheme.primary,
-                      width: 2,
+              child: Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Pinput(
+                  controller: _pinController,
+                  focusNode: _focusNode,
+                  length: 6,
+                  autofocus: true,
+                  enabled: !isLoading,
+                  forceErrorState: _errorMessage != null,
+                  errorText: _errorMessage,
+                  defaultPinTheme: defaultPinTheme,
+                  errorBuilder: (errorText, pin) {
+                    if (errorText == null || errorText.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.surfaceContainerLow,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(
+                                errorText,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                  separatorBuilder: (index) => Container(
+                    height: 64,
+                    width: 1,
+                    color: theme.colorScheme.surface,
+                  ),
+                  focusedPinTheme: defaultPinTheme.copyWith(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
                     ),
                   ),
-                ),
-                errorPinTheme: defaultPinTheme.copyWith(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: theme.colorScheme.error),
+                  errorPinTheme: defaultPinTheme.copyWith(
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                    ),
                   ),
+                  onChanged: (_) {
+                    if (_errorMessage != null) {
+                      setState(() => _errorMessage = null);
+                    }
+                  },
                 ),
-                onChanged: (_) {
-                  if (_errorMessage != null) {
-                    setState(() => _errorMessage = null);
-                  }
-                },
-                onCompleted: (_) => _submit(),
               ),
             ),
             const SizedBox(height: 24),
