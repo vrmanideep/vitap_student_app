@@ -47,38 +47,31 @@ class _MyExamScheduleState extends ConsumerState<PaymentsPage>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(pendingPaymentsViewModelProvider
-        .select((val) => val?.isLoading == true));
-
-    ref.listen(
-      pendingPaymentsViewModelProvider,
-      (_, next) {
-        next?.when(
-          data: (data) {
-            setState(() {
-              pendingPayments = data;
-            });
-          },
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
+    final isLoading = ref.watch(
+      pendingPaymentsViewModelProvider.select((val) => val?.isLoading == true),
     );
+
+    ref.listen(pendingPaymentsViewModelProvider, (_, next) {
+      next?.when(
+        data: (data) {
+          setState(() {
+            pendingPayments = data;
+          });
+        },
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Payments',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
         actions: [
           IconButton(
@@ -107,8 +100,11 @@ class _MyExamScheduleState extends ConsumerState<PaymentsPage>
       body: isLoading
           ? const Loader()
           : pendingPayments == null
-              ? const ErrorContentView(error: 'Pending Payments not found!')
-              : PendingPayments(pendingPayments: pendingPayments!),
+          ? const ErrorContentView(error: 'Pending Payments not found!')
+          : RefreshIndicator(
+              onRefresh: refreshPendingPayments,
+              child: PendingPayments(pendingPayments: pendingPayments!),
+            ),
     );
   }
 }

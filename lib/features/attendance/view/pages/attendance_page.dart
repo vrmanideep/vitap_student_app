@@ -139,9 +139,13 @@ class AttendancePageState extends ConsumerState<AttendancePage>
       ),
       body: isLoading
           ? const Loader()
-          : TabBarView(
-              controller: _tabController,
-              children: [_buildBody(user, 'Theory'), _buildBody(user, 'Lab')],
+          : RefreshIndicator(
+              onRefresh: () => refreshAttendanceData(),
+              notificationPredicate: (notification) => notification.depth == 1,
+              child: TabBarView(
+                controller: _tabController,
+                children: [_buildBody(user, 'Theory'), _buildBody(user, 'Lab')],
+              ),
             ),
     );
   }
