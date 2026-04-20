@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax_flutter/iconsax_flutter.dart';
-import 'package:intl/intl.dart';
 import 'package:vit_ap_student_app/core/common/widget/empty_content_view.dart';
 import 'package:vit_ap_student_app/features/home/model/pending_payment.dart';
 
@@ -32,7 +31,7 @@ class PaymentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dueDate = DateFormat.yMMMd().format(payment.endDate);
+    final dueDate = payment.endDate;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -47,9 +46,9 @@ class PaymentCard extends StatelessWidget {
             // Fees Head
             Text(
               payment.feesHeads,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
 
@@ -73,15 +72,14 @@ class PaymentCard extends StatelessWidget {
                   children: [
                     const Icon(Iconsax.calendar_1_copy, size: 16),
                     const SizedBox(width: 4),
-                    Text(
-                      'Due: $dueDate',
-                      style: const TextStyle(fontSize: 14),
-                    ),
+                    Text('Due: $dueDate', style: const TextStyle(fontSize: 14)),
                   ],
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -117,10 +115,7 @@ class _AmountLabel extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           '₹$value',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ],
     );
