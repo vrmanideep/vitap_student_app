@@ -29,6 +29,8 @@ class VtopClientService {
   Completer<void>? _otpCompleter;
   final StreamController<void> _otpRequiredController =
       StreamController<void>.broadcast();
+  final StreamController<String> _authFailureController =
+      StreamController<String>.broadcast();
 
   // VTOP sessions expire after 15 minutes, we'll refresh at 14 minutes to be safe
   static const Duration _sessionExpiryDuration = Duration(minutes: 15);
@@ -54,6 +56,11 @@ class VtopClientService {
   /// The global UI listener subscribes to this to show the OTP bottom sheet.
   Stream<void> get onOtpRequired => _otpRequiredController.stream;
 
+  /// Stream that emits the error message when authentication fails due to
+  /// invalid credentials or account lock (max attempts reached).
+  /// The global UI listener subscribes to show the auth failure bottom sheet.
+  Stream<String> get onAuthFailure => _authFailureController.stream;
+
   /// Get the VTOP client instance, initializing if necessary
   /// Automatically handles session expiry and re-authentication
   /// If OTP is pending, waits for OTP resolution before returning
@@ -69,7 +76,8 @@ class VtopClientService {
       }
     }
 
-    final bool needsNewClient = _client == null ||
+    final bool needsNewClient =
+        _client == null ||
         !_isInitialized ||
         _currentUsername != username ||
         _currentPasswordDigest != _digestOf(password) ||
@@ -154,6 +162,22 @@ class VtopClientService {
       _currentPasswordDigest = _digestOf(password);
       _sessionCreatedAt = DateTime.now();
       _isInitialized = true;
+    } on VtopError_AuthenticationFailed catch (e) {
+      _isInitialized = false;
+      _client = null;
+      _currentUsername = null;
+      _currentPasswordDigest = null;
+      _sessionCreatedAt = null;
+      _authFailureController.add(e.field0);
+      rethrow;
+    } on VtopError_InvalidCredentials {
+      _isInitialized = false;
+      _client = null;
+      _currentUsername = null;
+      _currentPasswordDigest = null;
+      _sessionCreatedAt = null;
+      _authFailureController.add('Invalid username or password.');
+      rethrow;
     } on VtopError_LoginOtpRequired {
       // Keep the client alive — OTP must be submitted on the same session
       _currentUsername = username;
@@ -282,21 +306,22 @@ class VtopClientService {
 
   /// Check if an error is retryable (session-related)
   bool _isRetryableError(dynamic error) {
-    // OTP errors are not retryable — they require user interaction
+    // OTP and auth errors are not retryable — they require user interaction.
+    // Retrying auth failures worsens account locks.
     if (error is VtopError_LoginOtpRequired ||
         error is VtopError_LoginOtpIncorrect ||
-        error is VtopError_LoginOtpExpired) {
+        error is VtopError_LoginOtpExpired ||
+        error is VtopError_AuthenticationFailed ||
+        error is VtopError_InvalidCredentials) {
       return false;
     }
 
     final errorString = error.toString().toLowerCase();
 
-    // Check for session expiry indicators
+    // Only session expiry is retryable — not auth failures
     return errorString.contains('session') ||
         errorString.contains('expired') ||
-        errorString.contains('unauthorized') ||
-        errorString.contains('invalid credentials') ||
-        errorString.contains('authentication failed');
+        errorString.contains('unauthorized');
   }
 
   /// Reset the client (for logout or credential changes)
@@ -353,5 +378,6 @@ class VtopClientService {
   /// Dispose of the service resources
   void dispose() {
     _otpRequiredController.close();
+    _authFailureController.close();
   }
 }

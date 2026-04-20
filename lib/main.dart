@@ -12,6 +12,7 @@ import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/analytics_service.dart';
 import 'package:vit_ap_student_app/core/services/vtop_service.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/onboarding/view/pages/onboarding_page.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
@@ -37,7 +38,9 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   DateTime? _sessionStartTime;
   bool _sessionEnded = false;
   StreamSubscription<void>? _otpSubscription;
+  StreamSubscription<String>? _authFailureSubscription;
   bool _isOtpSheetShowing = false;
+  bool _isAuthFailureSheetShowing = false;
 
   @override
   void initState() {
@@ -49,11 +52,14 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     _otpSubscription = serviceLocator<VtopClientService>().onOtpRequired.listen(
       (_) => _showGlobalOtpSheet(),
     );
+    _authFailureSubscription = serviceLocator<VtopClientService>().onAuthFailure
+        .listen((message) => _showGlobalAuthFailureSheet(message));
   }
 
   @override
   void dispose() {
     _otpSubscription?.cancel();
+    _authFailureSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _endSessionIfNeeded();
     super.dispose();
@@ -76,6 +82,24 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       if (vtopService.isOtpPending) {
         vtopService.cancelOtp();
       }
+    });
+  }
+
+  void _showGlobalAuthFailureSheet(String message) {
+    if (_isAuthFailureSheetShowing) return;
+    final navigatorState = _navigatorKey.currentState;
+    if (navigatorState == null) return;
+    final overlay = navigatorState.overlay;
+    if (overlay == null) return;
+
+    final isLoggedIn = ref.read(currentUserProvider.notifier).isLoggedIn;
+    _isAuthFailureSheetShowing = true;
+    showAuthFailureBottomSheet(
+      context: overlay.context,
+      errorMessage: message,
+      isLoggedIn: isLoggedIn,
+    ).whenComplete(() {
+      _isAuthFailureSheetShowing = false;
     });
   }
 
