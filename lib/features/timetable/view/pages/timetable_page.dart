@@ -111,9 +111,7 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
       );
     });
     return Scaffold(
-      body: isLoading
-          ? const Loader()
-          : user == null || timetable == null
+      body: user == null || timetable == null
           ? const ErrorContentView(error: 'User not found!')
           : NestedScrollView(
               physics: const BouncingScrollPhysics(),
@@ -204,19 +202,21 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
                   ),
                 ];
               },
-              body: TabBarView(
-                controller: _tabController,
-                physics: const BouncingScrollPhysics(),
-                children: const [
-                  ScheduleList(day: 'Sunday'),
-                  ScheduleList(day: 'Monday'),
-                  ScheduleList(day: 'Tuesday'),
-                  ScheduleList(day: 'Wednesday'),
-                  ScheduleList(day: 'Thursday'),
-                  ScheduleList(day: 'Friday'),
-                  ScheduleList(day: 'Saturday'),
-                ],
-              ),
+              body: isLoading
+                  ? const Loader()
+                  : TabBarView(
+                      controller: _tabController,
+                      physics: const BouncingScrollPhysics(),
+                      children: const [
+                        ScheduleList(day: 'Sunday'),
+                        ScheduleList(day: 'Monday'),
+                        ScheduleList(day: 'Tuesday'),
+                        ScheduleList(day: 'Wednesday'),
+                        ScheduleList(day: 'Thursday'),
+                        ScheduleList(day: 'Friday'),
+                        ScheduleList(day: 'Saturday'),
+                      ],
+                    ),
             ),
     );
   }
