@@ -1,5 +1,9 @@
 use crate::api::vtop::{
-    parser, types::*, vtop_client::VtopClient, vtop_errors::VtopError, vtop_errors::VtopResult,
+    parser,
+    types::*,
+    vtop_client::VtopClient,
+    vtop_errors::VtopError,
+    vtop_errors::VtopResult,
     vtop_errors::{map_reqwest_error, map_response_read_error},
 };
 
@@ -37,8 +41,8 @@ impl VtopClient {
     /// // Search by name
     /// let results = client.get_faculty_search("Sharma".to_string()).await?;
     /// for faculty in results.faculty_list {
-    ///     println!("{} - {} ({})", 
-    ///         faculty.name, 
+    ///     println!("{} - {} ({})",
+    ///         faculty.name,
     ///         faculty.designation,
     ///         faculty.department
     ///     );
@@ -49,10 +53,7 @@ impl VtopClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn get_faculty_search(
-        &mut self,
-        search_term: String,
-    ) -> VtopResult<GetFaculty> {
+    pub async fn get_faculty_search(&mut self, search_term: String) -> VtopResult<GetFaculty> {
         if !self.session.is_authenticated() {
             return Err(VtopError::SessionExpired);
         }
@@ -123,7 +124,7 @@ impl VtopClient {
     /// # async fn example(client: &mut VtopClient) -> Result<(), Box<dyn std::error::Error>> {
     /// // First search for faculty
     /// let search_results = client.get_faculty_search("Sharma".to_string()).await?;
-    /// 
+    ///
     /// // Then get detailed information
     /// if let Some(faculty) = search_results.faculty_list.first() {
     ///     let details = client.get_faculty_data(faculty.emp_id.clone()).await?;
@@ -165,8 +166,43 @@ impl VtopClient {
         self.handle_session_check(&res).await?;
 
         let text = res.text().await.map_err(map_response_read_error)?;
-        print!("Fetched faculty data: {}", text);
         let faculty_details = parser::faculty::parseabout::parse_faculty_data(text);
         Ok(faculty_details)
+    }
+
+    /// Fetches the complete list of all faculty members in a single request.
+    ///
+    /// Uses `empId=` to retrieve every faculty member from VTOP in one HTTP call,
+    /// returning their basic details (name, designation, school, employee ID).
+    /// Use `get_faculty_data()` on a specific `emp_id` to get full profile details.
+    pub async fn get_all_faculty(&mut self) -> VtopResult<Vec<GetFaculty>> {
+        if !self.session.is_authenticated() {
+            return Err(VtopError::SessionExpired);
+        }
+        let url = format!(
+            "{}/vtop/hrms/EmployeeSearchForStudent",
+            self.config.base_url
+        );
+        let body = format!(
+            "_csrf={}&empId=&authorizedID={}&x={}",
+            self.session
+                .get_csrf_token()
+                .ok_or(VtopError::SessionExpired)?,
+            self.username,
+            chrono::Utc::now().to_rfc2822()
+        );
+
+        let res = self
+            .client
+            .post(url)
+            .body(body)
+            .send()
+            .await
+            .map_err(map_reqwest_error)?;
+
+        self.handle_session_check(&res).await?;
+
+        let text = res.text().await.map_err(map_response_read_error)?;
+        Ok(parser::faculty::parsesearch::parse_all_faculty_search(text))
     }
 }

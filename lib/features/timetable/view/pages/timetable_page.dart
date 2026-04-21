@@ -111,111 +111,116 @@ class _TimetablePageState extends ConsumerState<TimetablePage>
       );
     });
     return Scaffold(
-      body: isLoading
-          ? const Loader()
-          : user == null || timetable == null
+      body: user == null || timetable == null
           ? const ErrorContentView(error: 'User not found!')
-          : NestedScrollView(
-              physics: const BouncingScrollPhysics(),
-              headerSliverBuilder: (context, innerBoxIsScrolled) {
-                return [
-                  SliverAppBar(
-                    automaticallyImplyLeading: true,
-                    expandedHeight: 75,
-                    centerTitle: false,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    actions: [
-                      IconButton(
-                        icon: Icon(
-                          Iconsax.refresh_copy,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        onPressed: () {
-                          refresh();
-                        },
-                        tooltip: 'Refresh',
-                      ),
-                    ],
-                    title: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Timetable',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                        Text(
-                          _getTodayClassesCount(timetable.target) == 0
-                              ? 'No classes today'
-                              : 'You have ${_getTodayClassesCount(timetable.target)} classes Today',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
+          : RefreshIndicator(
+              onRefresh: refresh,
+              notificationPredicate: (notification) => notification.depth == 2,
+              child: NestedScrollView(
+                physics: const BouncingScrollPhysics(),
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverAppBar(
+                      automaticallyImplyLeading: true,
+                      expandedHeight: 75,
+                      centerTitle: false,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      actions: [
+                        IconButton(
+                          icon: Icon(
+                            Iconsax.refresh_copy,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
+                          onPressed: () {
+                            refresh();
+                          },
+                          tooltip: 'Refresh',
                         ),
                       ],
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        isScrollable: false,
-                        dividerColor: Theme.of(context).colorScheme.surface,
-                        labelPadding: const EdgeInsets.all(0),
-                        splashBorderRadius: BorderRadius.circular(14),
-                        labelStyle: const TextStyle(fontSize: 18),
-                        unselectedLabelColor: Theme.of(
-                          context,
-                        ).colorScheme.onSecondaryContainer,
-                        labelColor: Theme.of(
-                          context,
-                        ).colorScheme.onSecondaryContainer,
-                        indicator: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        splashFactory: InkRipple.splashFactory,
-                        overlayColor: WidgetStateColor.resolveWith(
-                          (states) =>
-                              Theme.of(context).colorScheme.secondaryContainer,
-                        ),
-                        tabs: [
-                          _buildTab('S'),
-                          _buildTab('M'),
-                          _buildTab('T'),
-                          _buildTab('W'),
-                          _buildTab('T'),
-                          _buildTab('F'),
-                          _buildTab('S'),
+                      title: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Timetable',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            _getTodayClassesCount(timetable.target) == 0
+                                ? 'No classes today'
+                                : 'You have ${_getTodayClassesCount(timetable.target)} classes Today',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ];
-              },
-              body: TabBarView(
-                controller: _tabController,
-                physics: const BouncingScrollPhysics(),
-                children: const [
-                  ScheduleList(day: 'Sunday'),
-                  ScheduleList(day: 'Monday'),
-                  ScheduleList(day: 'Tuesday'),
-                  ScheduleList(day: 'Wednesday'),
-                  ScheduleList(day: 'Thursday'),
-                  ScheduleList(day: 'Friday'),
-                  ScheduleList(day: 'Saturday'),
-                ],
+                    SliverToBoxAdapter(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: TabBar(
+                          controller: _tabController,
+                          isScrollable: false,
+                          dividerColor: Theme.of(context).colorScheme.surface,
+                          labelPadding: const EdgeInsets.all(0),
+                          splashBorderRadius: BorderRadius.circular(14),
+                          labelStyle: const TextStyle(fontSize: 18),
+                          unselectedLabelColor: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
+                          labelColor: Theme.of(
+                            context,
+                          ).colorScheme.onSecondaryContainer,
+                          indicator: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          splashFactory: InkRipple.splashFactory,
+                          overlayColor: WidgetStateColor.resolveWith(
+                            (states) => Theme.of(
+                              context,
+                            ).colorScheme.secondaryContainer,
+                          ),
+                          tabs: [
+                            _buildTab('S'),
+                            _buildTab('M'),
+                            _buildTab('T'),
+                            _buildTab('W'),
+                            _buildTab('T'),
+                            _buildTab('F'),
+                            _buildTab('S'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ];
+                },
+                body: isLoading
+                    ? const Loader()
+                    : TabBarView(
+                        controller: _tabController,
+                        physics: const BouncingScrollPhysics(),
+                        children: const [
+                          ScheduleList(day: 'Sunday'),
+                          ScheduleList(day: 'Monday'),
+                          ScheduleList(day: 'Tuesday'),
+                          ScheduleList(day: 'Wednesday'),
+                          ScheduleList(day: 'Thursday'),
+                          ScheduleList(day: 'Friday'),
+                          ScheduleList(day: 'Saturday'),
+                        ],
+                      ),
               ),
             ),
     );

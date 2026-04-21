@@ -91,28 +91,22 @@ class _MyExamScheduleState extends ConsumerState<ExamSchedulePage>
     final examScheduleList = examSchedule?.toList() ?? [];
 
     final isLoading = ref.watch(
-        examScheduleViewModelProvider.select((val) => val?.isLoading == true));
+      examScheduleViewModelProvider.select((val) => val?.isLoading == true),
+    );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _autoSelectUpcomingTab(examScheduleList);
     });
 
-    ref.listen(
-      examScheduleViewModelProvider,
-      (_, next) {
-        next?.when(
-          data: (data) {},
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
-    );
+    ref.listen(examScheduleViewModelProvider, (_, next) {
+      next?.when(
+        data: (data) {},
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -124,10 +118,9 @@ class _MyExamScheduleState extends ConsumerState<ExamSchedulePage>
           children: [
             Text(
               'Exam Schedule',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
             ),
             if (lastSynced != null)
               Text(
@@ -155,15 +148,17 @@ class _MyExamScheduleState extends ConsumerState<ExamSchedulePage>
         ],
       ),
       body: user == null
-          ? const ErrorContentView(
-              error: 'User not found!',
-            )
+          ? const ErrorContentView(error: 'User not found!')
           : isLoading
-              ? const Loader()
-              : ExamScheduleTabView(
-                  tabController: _tabController,
-                  examSchedule: examScheduleList,
-                ),
+          ? const Loader()
+          : RefreshIndicator(
+              onRefresh: refreshExamSchedule,
+              notificationPredicate: (notification) => notification.depth == 1,
+              child: ExamScheduleTabView(
+                tabController: _tabController,
+                examSchedule: examScheduleList,
+              ),
+            ),
     );
   }
 }

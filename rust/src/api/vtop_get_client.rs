@@ -159,6 +159,13 @@ pub async fn fetch_faculty_data(
 }
 
 #[flutter_rust_bridge::frb()]
+pub async fn fetch_all_faculty(client: &mut VtopClient) -> Result<String, VtopError> {
+    let faculty_list = client.get_all_faculty().await?;
+    serde_json::to_string(&faculty_list)
+        .map_err(|e| VtopError::ParseError(format!("Failed to serialize faculty list: {}", e)))
+}
+
+#[flutter_rust_bridge::frb()]
 pub async fn fetch_weekend_outing_reports(client: &mut VtopClient) -> Result<String, VtopError> {
     let weekend_outing_records = client.get_weekend_outing_reports().await?;
     serde_json::to_string(&weekend_outing_records).map_err(|e| {
@@ -551,4 +558,14 @@ pub async fn download_digital_assignment(
     download_url: String,
 ) -> Result<Vec<u8>, VtopError> {
     client.get_da_or_qp_pdf(download_url).await
+}
+
+#[flutter_rust_bridge::frb()]
+pub async fn handle_login_otp(client: &mut VtopClient, otp_code: String) -> Result<(), VtopError> {
+    client.verify_login_otp(&otp_code).await
+}
+
+#[flutter_rust_bridge::frb()]
+pub async fn handle_login_otp_resend(client: &mut VtopClient) -> Result<(), VtopError> {
+    client.resend_login_otp().await
 }

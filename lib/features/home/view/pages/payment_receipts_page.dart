@@ -32,10 +32,9 @@ class _PaymentReceiptsPageState extends ConsumerState<PaymentReceiptsPage> {
       appBar: AppBar(
         title: Text(
           'Payment Receipts',
-          style: Theme.of(context)
-              .textTheme
-              .headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w500),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         elevation: 0,
@@ -48,11 +47,16 @@ class _PaymentReceiptsPageState extends ConsumerState<PaymentReceiptsPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error_outline,
-                        color: Colors.redAccent, size: 48),
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.redAccent,
+                      size: 48,
+                    ),
                     const SizedBox(height: 8),
-                    Text('Something went wrong:\n$err',
-                        textAlign: TextAlign.center),
+                    Text(
+                      'Something went wrong:\n$err',
+                      textAlign: TextAlign.center,
+                    ),
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () {
@@ -70,14 +74,21 @@ class _PaymentReceiptsPageState extends ConsumerState<PaymentReceiptsPage> {
                       primaryText: 'No payments found',
                       secondaryText: "Seems like you haven't made any yet.",
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: receipts.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final receipt = receipts[index];
-                        return _PaymentReceiptCard(receipt: receipt);
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        ref
+                            .read(paymentReceiptsViewModelProvider.notifier)
+                            .fetchPendingPayments();
                       },
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: receipts.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final receipt = receipts[index];
+                          return _PaymentReceiptCard(receipt: receipt);
+                        },
+                      ),
                     ),
             ),
     );
@@ -104,9 +115,9 @@ class _PaymentReceiptCard extends StatelessWidget {
           children: [
             Text(
               'Receipt #${receipt.receiptNumber}',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Row(
@@ -123,13 +134,15 @@ class _PaymentReceiptCard extends StatelessWidget {
                 Text(
                   '₹${receipt.amount}',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: isPaid ? Colors.green.shade100 : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -137,14 +150,15 @@ class _PaymentReceiptCard extends StatelessWidget {
                   child: Text(
                     receipt.paymentStatus,
                     style: TextStyle(
-                      color:
-                          isPaid ? Colors.green.shade800 : Colors.red.shade800,
+                      color: isPaid
+                          ? Colors.green.shade800
+                          : Colors.red.shade800,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),

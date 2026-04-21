@@ -23,7 +23,7 @@ class PendingPayment {
   @JsonKey(name: 'fees_heads')
   final String feesHeads;
   @JsonKey(name: 'end_date')
-  final DateTime endDate;
+  final String endDate;
   @JsonKey(name: 'amount')
   final String amount;
   @JsonKey(name: 'fine')

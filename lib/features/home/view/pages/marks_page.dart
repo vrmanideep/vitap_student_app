@@ -77,25 +77,19 @@ class _MarksPageState extends ConsumerState<MarksPage>
   Widget build(BuildContext context) {
     final User? user = ref.watch(currentUserProvider);
 
-    final isLoading = ref
-        .watch(marksViewModelProvider.select((val) => val?.isLoading == true));
-
-    ref.listen(
-      marksViewModelProvider,
-      (_, next) {
-        next?.when(
-          data: (data) {},
-          loading: () {},
-          error: (error, st) {
-            showSnackBar(
-              context,
-              error.toString(),
-              SnackBarType.error,
-            );
-          },
-        );
-      },
+    final isLoading = ref.watch(
+      marksViewModelProvider.select((val) => val?.isLoading == true),
     );
+
+    ref.listen(marksViewModelProvider, (_, next) {
+      next?.when(
+        data: (data) {},
+        loading: () {},
+        error: (error, st) {
+          showSnackBar(context, error.toString(), SnackBarType.error);
+        },
+      );
+    });
 
     // Extract unique course categories from user marks
     final courseTypes = user?.marks.map((m) => m.courseType).toList() ?? [];
@@ -116,10 +110,9 @@ class _MarksPageState extends ConsumerState<MarksPage>
           children: [
             Text(
               'Marks',
-              style: Theme.of(context)
-                  .textTheme
-                  .headlineSmall
-                  ?.copyWith(fontWeight: FontWeight.w500),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w500),
             ),
             if (lastSynced != null)
               Text(
@@ -153,14 +146,18 @@ class _MarksPageState extends ConsumerState<MarksPage>
       ),
       body: isLoading
           ? const Loader()
-          : _tabController != null && _courseCategories.isNotEmpty
-              ? TabBarView(
-                  controller: _tabController,
-                  children: _courseCategories
-                      .map((category) => _buildBody(user, category))
-                      .toList(),
-                )
-              : _buildBody(user, ''),
+          : RefreshIndicator(
+              onRefresh: refreshMarksData,
+              notificationPredicate: (notification) => notification.depth == 1,
+              child: _tabController != null && _courseCategories.isNotEmpty
+                  ? TabBarView(
+                      controller: _tabController,
+                      children: _courseCategories
+                          .map((category) => _buildBody(user, category))
+                          .toList(),
+                    )
+                  : _buildBody(user, ''),
+            ),
     );
   }
 
@@ -175,7 +172,9 @@ class _MarksPageState extends ConsumerState<MarksPage>
     final filteredMarks = marks.where((mark) {
       if (courseTypeFilter.isEmpty) return true;
       return CourseTypeHelper.matchesCategory(
-          mark.courseType, courseTypeFilter);
+        mark.courseType,
+        courseTypeFilter,
+      );
     }).toList();
 
     if (filteredMarks.isEmpty) {
@@ -200,8 +199,9 @@ class _MarksPageState extends ConsumerState<MarksPage>
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4),
           child: ListTile(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
             tileColor: Theme.of(context).colorScheme.surfaceContainerLow,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -215,9 +215,7 @@ class _MarksPageState extends ConsumerState<MarksPage>
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(
-                  height: 2,
-                ),
+                const SizedBox(height: 2),
                 Text(
                   course.faculty,
                   style: TextStyle(
@@ -234,9 +232,7 @@ class _MarksPageState extends ConsumerState<MarksPage>
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(
-                  height: 16,
-                ),
+                const SizedBox(height: 16),
                 RichText(
                   text: TextSpan(
                     text: totalWeightage.toStringAsFixed(0),

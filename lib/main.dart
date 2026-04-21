@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,9 @@ import 'package:vit_ap_student_app/core/providers/schedule_home_widget_notifier.
 import 'package:vit_ap_student_app/core/providers/theme_mode_notifier.dart';
 import 'package:vit_ap_student_app/core/providers/user_preferences_notifier.dart';
 import 'package:vit_ap_student_app/core/services/analytics_service.dart';
+import 'package:vit_ap_student_app/core/services/vtop_service.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/auth_failure_bottom_sheet.dart';
+import 'package:vit_ap_student_app/features/auth/view/widgets/login_otp_bottom_sheet.dart';
 import 'package:vit_ap_student_app/features/onboarding/view/pages/onboarding_page.dart';
 import 'package:vit_ap_student_app/init_dependencies.dart';
 import 'package:wiredash/wiredash.dart';
@@ -19,6 +24,7 @@ void main() async {
   print("=== BOOT LOG 1: Starting main ===");
   WidgetsFlutterBinding.ensureInitialized();
 
+<<<<<<< HEAD
   print("=== BOOT LOG 2: Widgets initialized, starting dependencies ===");
   await initDependencies();
 
@@ -28,6 +34,9 @@ void main() async {
       child: MyApp(),
     ),
   );
+=======
+  runApp(const ProviderScope(child: MyApp()));
+>>>>>>> 51798417ea6bd27a885f5d2f6602920bdb8ec5f4
 }
 
 class MyApp extends ConsumerStatefulWidget {
@@ -39,8 +48,13 @@ class MyApp extends ConsumerStatefulWidget {
 
 class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   final AnalyticsRouteObserver _routeObserver = AnalyticsRouteObserver();
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   DateTime? _sessionStartTime;
   bool _sessionEnded = false;
+  StreamSubscription<void>? _otpSubscription;
+  StreamSubscription<String>? _authFailureSubscription;
+  bool _isOtpSheetShowing = false;
+  bool _isAuthFailureSheetShowing = false;
 
   @override
   void initState() {
@@ -48,13 +62,59 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _sessionStartTime = DateTime.now();
     _sessionEnded = false;
+
+    _otpSubscription = serviceLocator<VtopClientService>().onOtpRequired.listen(
+      (_) => _showGlobalOtpSheet(),
+    );
+    _authFailureSubscription = serviceLocator<VtopClientService>().onAuthFailure
+        .listen((message) => _showGlobalAuthFailureSheet(message));
   }
 
   @override
   void dispose() {
+    _otpSubscription?.cancel();
+    _authFailureSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _endSessionIfNeeded();
     super.dispose();
+  }
+
+  void _showGlobalOtpSheet() {
+    if (_isOtpSheetShowing) return;
+    final navigatorState = _navigatorKey.currentState;
+    if (navigatorState == null) return;
+    final overlay = navigatorState.overlay;
+    if (overlay == null) return;
+
+    _isOtpSheetShowing = true;
+    showLoginOtpBottomSheet(context: overlay.context).whenComplete(() {
+      _isOtpSheetShowing = false;
+      // Safety net: if the sheet closed without resolving OTP
+      // (e.g. unexpected dismissal), cancel the pending completer
+      // so the blocked operation doesn't hang forever.
+      final vtopService = serviceLocator<VtopClientService>();
+      if (vtopService.isOtpPending) {
+        vtopService.cancelOtp();
+      }
+    });
+  }
+
+  void _showGlobalAuthFailureSheet(String message) {
+    if (_isAuthFailureSheetShowing) return;
+    final navigatorState = _navigatorKey.currentState;
+    if (navigatorState == null) return;
+    final overlay = navigatorState.overlay;
+    if (overlay == null) return;
+
+    final isLoggedIn = ref.read(currentUserProvider.notifier).isLoggedIn;
+    _isAuthFailureSheetShowing = true;
+    showAuthFailureBottomSheet(
+      context: overlay.context,
+      errorMessage: message,
+      isLoggedIn: isLoggedIn,
+    ).whenComplete(() {
+      _isAuthFailureSheetShowing = false;
+    });
   }
 
   void _endSessionIfNeeded() {
@@ -89,8 +149,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     // Init home widget
     ref.read(scheduleHomeWidgetProvider.notifier).initializeTimetable();
-    final isLoggedIn =
-        ref.read(currentUserProvider.notifier).isLoggedIn;
+    final isLoggedIn = ref.read(currentUserProvider.notifier).isLoggedIn;
     final themeMode = ref.watch(themeModeProvider);
     final userPreferences = ref.watch(userPreferencesProvider);
 
@@ -98,6 +157,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       projectId: 'vit-ap-student-app-uh1uuvl',
       secret: dotenv.env['WIREDASH_SECRET_KEY'] ?? 'dev_key',
       child: MaterialApp(
+        navigatorKey: _navigatorKey,
         themeAnimationCurve: Curves.easeInOut,
         debugShowCheckedModeBanner: false,
         theme: themeMode,
@@ -106,9 +166,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         builder: (context, child) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(
-              userPreferences.fontScale ?? 1.0,
-            )),
+              textScaler: TextScaler.linear(userPreferences.fontScale ?? 1.0),
+            ),
             child: child!,
           );
         },

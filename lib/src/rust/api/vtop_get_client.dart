@@ -124,6 +124,9 @@ Future<FacultyDetails> fetchFacultyData({
   empId: empId,
 );
 
+Future<String> fetchAllFaculty({required VtopClient client}) =>
+    RustLib.instance.api.crateApiVtopGetClientFetchAllFaculty(client: client);
+
 Future<String> fetchWeekendOutingReports({required VtopClient client}) =>
     RustLib.instance.api.crateApiVtopGetClientFetchWeekendOutingReports(
       client: client,
@@ -472,3 +475,16 @@ Future<Uint8List> downloadDigitalAssignment({
   client: client,
   downloadUrl: downloadUrl,
 );
+
+Future<void> handleLoginOtp({
+  required VtopClient client,
+  required String otpCode,
+}) => RustLib.instance.api.crateApiVtopGetClientHandleLoginOtp(
+  client: client,
+  otpCode: otpCode,
+);
+
+Future<void> handleLoginOtpResend({required VtopClient client}) => RustLib
+    .instance
+    .api
+    .crateApiVtopGetClientHandleLoginOtpResend(client: client);
