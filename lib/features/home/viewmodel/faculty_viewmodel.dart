@@ -24,6 +24,7 @@ class FacultyListViewModel extends _$FacultyListViewModel {
     state = const AsyncValue.loading();
 
     final res = await _repository.fetchFacultyList();
+    if (!ref.mounted) return;
 
     state = switch (res) {
       Left(value: final failure) => AsyncValue.error(
@@ -54,6 +55,8 @@ class FacultyDetailsViewModel extends _$FacultyDetailsViewModel {
     final credentials = await ref
         .read(currentUserProvider.notifier)
         .getSavedCredentials();
+    if (!ref.mounted) return;
+
     if (credentials == null) {
       state = AsyncValue.error(
         'User not found. Please logout and login again.',
@@ -67,6 +70,7 @@ class FacultyDetailsViewModel extends _$FacultyDetailsViewModel {
       password: credentials.password,
       empId: empId,
     );
+    if (!ref.mounted) return;
 
     state = switch (res) {
       Left(value: final failure) => AsyncValue.error(
