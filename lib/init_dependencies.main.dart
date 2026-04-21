@@ -3,6 +3,15 @@ part of 'init_dependencies.dart';
 final GetIt serviceLocator = GetIt.instance;
 
 Future<void> initDependencies() async {
+  // 1. Tell GetIt not to crash if we overwrite a dependency during a restart or background sync
+  serviceLocator.allowReassignment = true;
+
+  // 2. ISOLATE SAFEGUARD: If the Store is already registered, this isolate 
+  // is already fully initialized. We safely abort to prevent double-registration.
+  if (serviceLocator.isRegistered<Store>()) {
+    return;
+  }
+
   await initObjectBox();
   await initServices();
   await RustLib.init();

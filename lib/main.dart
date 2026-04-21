@@ -16,7 +16,13 @@ import 'package:wiredash/wiredash.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initDependencies();
+  print("=== BOOT LOG 1: Starting main ===");
+  WidgetsFlutterBinding.ensureInitialized();
 
+  print("=== BOOT LOG 2: Widgets initialized, starting dependencies ===");
+  await initDependencies();
+
+  print("=== BOOT LOG 3: Dependencies finished, running app ===");
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -90,7 +96,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
     return Wiredash(
       projectId: 'vit-ap-student-app-uh1uuvl',
-      secret: dotenv.env['WIREDASH_SECRET_KEY']!,
+      secret: dotenv.env['WIREDASH_SECRET_KEY'] ?? 'dev_key',
       child: MaterialApp(
         themeAnimationCurve: Curves.easeInOut,
         debugShowCheckedModeBanner: false,
